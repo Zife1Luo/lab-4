@@ -242,7 +242,7 @@ public class MongoGradeDataBase implements GradeDataBase {
     }
 
     @Override
-    // TODO Task 3b: Implement this method
+    // Task 3b: Implement this method
     //       Hint: Read the Grade API documentation for getMyTeam (link below) and refer to the above similar
     //             methods to help you write this code (copy-and-paste + edit as needed).
     //             https://www.postman.com/cloudy-astronaut-813156/csc207-grade-apis-demo/folder/isr2ymn/get-my-team
@@ -255,13 +255,36 @@ public class MongoGradeDataBase implements GradeDataBase {
                 .addHeader(TOKEN, getAPIToken())
                 .addHeader(CONTENT_TYPE, APPLICATION_JSON)
                 .build();
+        try {
+            final Response response = client.newCall(request).execute();
+            final String responseBodyString = response.body().string();
+            final JSONObject responseBody = new JSONObject(responseBodyString);
 
-        final Response response;
-        final JSONObject responseBody;
+            if (response.code() == SUCCESS_CODE) {
+                final JSONObject team = responseBody.getJSONObject("team");
+                final JSONArray membersArray = team.getJSONArray("members");
+                final String[] members = new String[membersArray.length()];
+                for (int i = 0; i < membersArray.length(); i++) {
+                    members[i] = membersArray.getString(i);
+                }
 
-        // TODO Task 3b: Implement the logic to get the team information
+                return Team.builder()
+                        .name(team.getString("name"))
+                        .members(members)
+                        .build();
+            } else if (response.code() == 404) {
+                throw new RuntimeException("You are not in a team");
+            } else if (response.code() == 401) {
+                throw new RuntimeException("Invalid token");
+            } else {
+                throw new RuntimeException(responseBody.getString(MESSAGE));
+            }
+        }
+        catch (IOException | JSONException event) {
+            throw new RuntimeException(event);
+        }
+        // Task 3b: Implement the logic to get the team information
         // HINT: Look at the formTeam method to get an idea on how to parse the response
-
-        return null;
     }
 }
+
